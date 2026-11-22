@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1220">
+<title>El Héroe contra la Parca</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0f1220;--card:#1b2038;--line:#2c3356;--tx:#eef0ff;--mut:#9aa3c7;--acc:#ffd166;--ok:#2ec27e;--bad:#ef476f;--pri:#5b8cff}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none;overflow:hidden}
+.screen{display:none;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;padding:max(12px,env(safe-area-inset-top)) 16px max(14px,env(safe-area-inset-bottom))}
+.screen.on{display:flex}
+button{font:inherit;color:inherit;border:0;cursor:pointer;background:none}
+.btn{width:100%;min-height:56px;border-radius:16px;background:var(--pri);font-size:18px;font-weight:700}
+.btn:disabled{opacity:.35}
+.btn.sec{background:var(--card);border:1px solid var(--line);font-weight:600}
+.stack{display:flex;flex-direction:column;gap:10px;margin-top:auto;padding-top:10px}
+
+/* MENU */
+#menu{overflow-y:auto}
+.title{text-align:center;padding:4px 0 2px}
+.title svg{height:70px}
+h1{font-size:22px;margin-top:4px}
+.title p{color:var(--mut);font-size:14px;margin-top:4px}
+h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:14px 0 8px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.diffs{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:12px;align-items:center;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px 12px;min-height:58px}
+.oe{font-size:26px}
+.opt small{display:block;color:var(--mut);font-size:12.5px;margin-top:2px}
+.topics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tp{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:10px 12px;min-height:56px;display:flex;flex-direction:column;align-items:flex-start;gap:3px;font-weight:600;font-size:15px;text-align:left}
+.tp[data-t=all]{grid-column:1/-1}
+.opt.sel,.tp.sel{border-color:var(--acc);background:#262b4a}
+.st{color:var(--acc);font-size:13px;letter-spacing:2px}
+.note{text-align:center;color:var(--mut);font-size:13.5px;margin-top:12px;line-height:1.5}
+.warn{color:var(--bad);font-size:13px;text-align:center;margin-top:8px}
+
+/* STAGE */
+.stage{display:flex;align-items:flex-end;justify-content:space-between;gap:6px}
+.side{display:flex;flex-direction:column;align-items:center;gap:4px;width:110px}
+.vs{color:var(--mut);font-weight:800;font-size:13px;padding-bottom:22px;letter-spacing:.1em}
+#hero{width:68px;height:82px;overflow:visible}
+#reaper{width:80px;height:93px;overflow:visible}
+#hearts{font-size:14px;letter-spacing:1px;min-height:18px}
+.hp{width:96px;height:9px;background:var(--line);border-radius:6px;overflow:hidden;margin:4px 0 5px}
+.hp i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#8a1c2b,var(--bad));transition:width .4s}
+.d{opacity:0;transition:opacity .3s}
+#hero.dmg1 .d1,#hero.dmg2 .d1,#hero.dmg2 .d2,#hero.dmg3 .d{opacity:1}
+#hero.dmg2{filter:saturate(.8)}
+#hero.dmg3{filter:saturate(.55)}
+#hero.dmg3 .hbody{transform:rotate(-5deg) translateY(3px);transform-origin:50% 100%;transform-box:view-box}
+#hero.last{animation:aura 1.2s infinite}
+@keyframes aura{50%{filter:drop-shadow(0 0 8px #ffd166) saturate(.7)}}
+#hero.atk .hbody{animation:atk .45s}
+@keyframes atk{40%{transform:translateX(14px) scale(1.05)}}
+#hero.hit{animation:hit .45s}
+@keyframes hit{30%{transform:translateX(-7px) rotate(-8deg);filter:brightness(2.2) hue-rotate(-40deg)}}
+#hero.power{animation:pow .7s}
+@keyframes pow{50%{filter:drop-shadow(0 0 14px #ffd166) brightness(1.4)}}
+#reaper .rbody{animation:float 3s ease-in-out infinite}
+#reaper .rshadow{animation:shad 3s ease-in-out infinite;transform-origin:60px 136px;transform-box:view-box}
+@keyframes float{50%{transform:translateY(-6px)}}
+@keyframes shad{50%{transform:scale(.8);opacity:.25}}
+#reaper .scythe{transform-origin:91px 80px;transform-box:view-box}
+#reaper.swing .scythe{animation:swing .55s}
+@keyframes swing{30%{transform:rotate(28deg)}65%{transform:rotate(-75deg)}}
+#reaper.hurt{animation:hurt .45s}
+@keyframes hurt{30%{filter:brightness(3);transform:translateX(7px)}}
+#reaper .eye{animation:blink 4s infinite}
+@keyframes blink{0%,92%,100%{opacity:1}95%{opacity:.2}}
+
+/* GAME */
+.info{display:flex;justify-content:space-between;align-items:center;color:var(--mut);font-size:13px;margin:6px 0 8px;gap:6px}
+.info .l,.info .rr{display:flex;gap:8px;align-items:center}
+.quit,.pw{color:var(--mut);font-size:12.5px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.pw{color:var(--acc);border-color:#ffd16677;font-weight:700}
+.pw:disabled{opacity:.35}
+.tbar{height:6px;background:var(--line);border-radius:4px;overflow:hidden;display:none;margin-bottom:8px}
+.tbar i{display:block;height:100%;background:var(--acc);width:100%}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 14px;text-align:center}
+.card small{color:var(--acc);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+#es{font-size:21px;font-weight:700;margin-top:6px;line-height:1.3}
+.ask{font-size:19px;font-weight:700}
+.guide{color:var(--mut);font-size:14px;font-weight:500;margin-top:6px}
+.audio{font-size:15px;font-weight:600;color:var(--mut);line-height:1.4}
+.mini{border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-size:14px;margin-top:8px;color:var(--mut)}
+.hint{color:var(--acc);font-size:16px;font-weight:600;margin-top:6px;letter-spacing:.03em}
+.hint:empty{display:none}
+.bubble{font-size:13.5px;color:var(--mut);text-align:center;margin:8px 0;min-height:18px}
+#zone{order:4}
+.spacer{flex:1;order:5}
+#action{order:6;margin-top:10px}
+.typing .spacer{order:7}
+.slots{min-height:60px;border-bottom:2px dashed var(--line);display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;padding:6px 0;margin-bottom:12px}
+.chip{background:var(--pri);border-radius:10px;padding:8px 10px;font-size:17px;font-weight:600}
+.chip.ghost{background:transparent;border:1.5px dashed var(--line);color:#5d668f}
+.ph{color:#5d668f;font-size:14px}
+.q{font-size:20px;font-weight:700;color:var(--mut)}
+.tiles{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.tile{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:11px 13px;font-size:18px;font-weight:600;min-height:48px}
+.tile.used{visibility:hidden}
+.glow{border-color:var(--acc)!important;box-shadow:0 0 0 3px #ffd16655;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.07)}}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+#inp{width:100%;min-height:56px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--tx);font-size:19px;padding:0 14px;outline:none}
+#inp:focus{border-color:var(--acc)}
+
+/* VOICE */
+.vw{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:52px}
+.vchip{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;font-size:18px;font-weight:600}
+.vchip.hid{color:transparent;background:repeating-linear-gradient(45deg,#1b2038,#1b2038 6px,#232947 6px,#232947 12px)}
+.start{text-align:center;color:var(--acc);font-size:15px;margin-top:10px;min-height:0}
+.start:empty{display:none}
+.heard{text-align:center;color:var(--mut);font-size:15px;margin:12px 0 8px;min-height:22px;line-height:1.5}
+.mic{display:block;margin:6px auto 0;width:86px;height:86px;border-radius:50%;background:var(--pri);font-size:36px;box-shadow:0 6px 20px #5b8cff55}
+.mic.on{background:var(--bad);animation:pulse 1s infinite;box-shadow:0 0 0 8px #ef476f33}
+.mic:disabled{opacity:.35}
+.tk{display:inline-block;padding:1px 4px;border-radius:5px;margin:1px}
+.tk.y{background:#2ec27e33;color:#7ff0b4}
+.tk.n{background:#ef476f33;color:#ff9db3;text-decoration:line-through}
+
+/* EFFECTS */
+#slash{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:20}
+#slash svg{width:100%;height:100%}
+#slash path{stroke:#fff;stroke-width:5;fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke;stroke-dasharray:200;stroke-dashoffset:200;filter:drop-shadow(0 0 6px #ff2d55) drop-shadow(0 0 14px #ff2d55)}
+#slash.go{animation:slashbg .8s}
+#slash.go path{animation:cut .28s ease-out forwards}
+@keyframes cut{to{stroke-dashoffset:0}}
+@keyframes slashbg{0%{opacity:1;background:#ff2d5500}25%{background:#ff2d5544}100%{opacity:0;background:#ff2d5500}}
+.quake{animation:quake .4s}
+@keyframes quake{20%{transform:translate(-6px,3px)}40%{transform:translate(6px,-3px)}60%{transform:translate(-4px,2px)}80%{transform:translate(3px,-1px)}}
+#breath{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:#000c;z-index:15;text-align:center;padding:24px}
+#breath.on{display:flex}
+#breath b{font-size:30px;color:var(--acc);animation:rise 1.6s}
+#breath p{color:var(--mut);margin-top:8px}
+@keyframes rise{0%{transform:translateY(30px) scale(.8);opacity:0}40%{transform:none;opacity:1}}
+
+/* SHEET */
+.sheet{position:fixed;inset:0;background:#000a;display:none;align-items:flex-end;justify-content:center;z-index:10}
+.sheet.on{display:flex}
+.sh-in{width:100%;max-width:480px;background:var(--card);border-radius:22px 22px 0 0;padding:18px 16px max(16px,env(safe-area-inset-bottom));animation:up .25s;max-height:90dvh;overflow-y:auto}
+@keyframes up{from{transform:translateY(100%)}}
+.sh-in h3{font-size:19px}
+.sh-in.ok h3{color:var(--ok)}
+.sh-in.bad h3{color:var(--bad)}
+#shU{color:var(--mut);font-size:14px;margin-top:6px}
+#shV{margin-top:8px;font-size:15px;line-height:1.6}
+#shV:empty{display:none}
+.pct{font-weight:700;color:var(--acc)}
+.ans{display:flex;flex-direction:column;gap:5px;background:var(--bg);border-radius:14px;padding:14px;margin:12px 0}
+.ans small{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.ans b{font-size:20px}
+.pr{color:var(--acc);font-size:16px}
+.es2{color:var(--mut);font-size:15px}
+.row{display:flex;gap:10px}
+.row .btn{flex:1}
+
+/* RESULT */
+.res-top{text-align:center;padding-top:4px}
+.rank{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:18px;font-size:36px;font-weight:900;background:linear-gradient(145deg,#ffd166,#c98b2a);color:#1b1300;box-shadow:0 6px 20px #ffd16644}
+.rank.D,.rank.C{background:linear-gradient(145deg,#5d668f,#2c3356);color:#fff;box-shadow:none}
+#rT{font-size:20px;margin-top:8px}
+.stars{font-size:28px;color:var(--acc);letter-spacing:4px;margin:4px 0 2px}
+.sub{color:var(--mut);font-size:13.5px}
+#rRec{color:var(--acc);font-weight:700;font-size:15px;margin-top:4px}
+#rRec:empty{display:none}
+.scroll{flex:1;overflow-y:auto;min-height:0;margin-top:10px}
+.bd{background:var(--card);border-radius:14px;padding:12px 14px;font-size:14.5px}
+.bd div{display:flex;justify-content:space-between;padding:3px 0;color:var(--mut)}
+.bd div b{color:var(--tx)}
+.bd .tot{border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-size:17px;color:var(--tx)}
+.bd .tot b{color:var(--acc)}
+.fi{background:var(--card);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.fi div{display:flex;flex-direction:column;gap:2px}
+.fi .pr,.fi .es2{font-size:13px}
+.fi button{background:var(--bg);border-radius:10px;min-width:46px;min-height:46px;font-size:18px}
+.clean{text-align:center;color:var(--ok);margin-top:14px}
+
+#rotate{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:99;text-align:center;padding:20px}
+@media (orientation:landscape) and (max-height:520px){#rotate{display:flex}}
+</style>
+</head>
+<body>
+
+<!-- SVG reutilizable -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="hSuit" x1="0" x2="1"><stop offset="0" stop-color="#8fbaff"/><stop offset=".5" stop-color="#3a6fe0"/><stop offset="1" stop-color="#1c3a8a"/></linearGradient>
+    <linearGradient id="hCape" x1="0" x2="1"><stop offset="0" stop-color="#ff7b7b"/><stop offset="1" stop-color="#7a1424"/></linearGradient>
+    <radialGradient id="hSkin" cx=".38" cy=".35" r=".7"><stop offset="0" stop-color="#ffe3c9"/><stop offset="1" stop-color="#c98b5f"/></radialGradient>
+    <linearGradient id="rRobe" x1="0" x2="1"><stop offset="0" stop-color="#4f4f6e"/><stop offset=".35" stop-color="#1d1d2c"/><stop offset="1" stop-color="#040407"/></linearGradient>
+    <radialGradient id="rHood" cx=".5" cy=".45" r=".6"><stop offset="0" stop-color="#000"/><stop offset=".8" stop-color="#05050a"/><stop offset="1" stop-color="#2d2d42"/></radialGradient>
+    <linearGradient id="rBlade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".4" stop-color="#b9c2d6"/><stop offset="1" stop-color="#454b5c"/></linearGradient>
+    <radialGradient id="rEye"><stop offset="0" stop-color="#fff2f2"/><stop offset=".4" stop-color="#ff2d55"/><stop offset="1" stop-color="#ff2d55" stop-opacity="0"/></radialGradient>
+  </defs>
+</svg>
+
+<!-- MENÚ -->
+<section id="menu" class="screen on">
+  <div class="title">
+    <svg viewBox="0 0 230 120"><g id="menuHero"></g><text x="115" y="70" fill="#9aa3c7" font-size="16" font-weight="800" text-anchor="middle">VS</text><g transform="translate(130,0) scale(.86)" id="menuReaper"></g></svg>
+    <h1>El Héroe contra la Parca</h1>
+    <p>Ayuda al héroe a recordar el inglés.</p>
+  </div>
+  <h2>Modo</h2>
+  <div id="modes" class="modes"></div>
+  <div id="srWarn" class="warn"></div>
+  <button id="diagBtn" class="btn sec" style="margin-top:8px;min-height:48px;font-size:16px">🔧 Probar micrófono</button>
+  <div id="diag" class="note" style="text-align:left"></div>
+  <h2>Dificultad</h2>
+  <div id="diffs" class="diffs"></div>
+  <h2>Tema</h2>
+  <div id="topics" class="topics"></div>
+  <div class="note" id="record"></div>
+  <div class="note">✨ 3 poderes · 💨 1 último aliento por partida</div>
+  <div class="stack">
+    <button id="reviewBtn" class="btn sec"></button>
+    <button id="playBtn" class="btn">▶ Jugar</button>
+  </div>
+</section>
+
+<!-- JUEGO -->
+<section id="game" class="screen">
+  <div class="stage">
+    <div class="side">
+      <svg id="hero" viewBox="0 0 100 120"></svg>
+      <div id="hearts"></div>
+    </div>
+    <div class="vs">VS</div>
+    <div class="side">
+      <svg id="reaper" viewBox="0 0 120 140"></svg>
+      <div class="hp"><i id="vhp"></i></div>
+    </div>
+  </div>
+  <div class="info">
+    <div class="l"><span id="tpl"></span><span id="prog"></span></div>
+    <div class="rr"><span id="pts"></span><span id="stk"></span><button id="pw" class="pw">✨3</button><button id="quit" class="quit">✕</button></div>
+  </div>
+  <div class="tbar" id="tbar"><i id="tfill"></i></div>
+  <div class="card"><small id="lbl"></small><div id="es"></div><div id="hint" class="hint"></div></div>
+  <div class="bubble" id="bubble"></div>
+  <div id="zone"></div>
+  <div class="spacer"></div>
+  <button id="action" class="btn">Comprobar</button>
+</section>
+
+<!-- RESULTADO -->
+<section id="result" class="screen">
+  <div class="res-top">
+    <div class="rank" id="rRank"></div>
+    <h1 id="rT"></h1>
+    <div class="stars" id="rS"></div>
+    <div class="sub" id="rSub"></div>
+    <div id="rRec"></div>
+  </div>
+  <div class="scroll">
+    <div class="bd" id="rB"></div>
+    <div id="rF"></div>
+  </div>
+  <div class="stack">
+    <button class="btn sec" id="rRev"></button>
+    <div class="row"><button class="btn sec" id="rMenu">🏠 Menú</button><button class="btn" id="rAgain">▶ Otra vez</button></div>
+  </div>
+</section>
+
+<!-- RESPUESTA -->
+<div class="sheet" id="sheet">
+  <div class="sh-in" id="shIn">
+    <h3 id="shT"></h3>
+    <p id="shU"></p>
+    <div id="shV"></div>
+    <div class="ans"><small>Así se dice</small><b id="shEn"></b><span class="pr" id="shPr"></span><span class="es2" id="shEs"></span></div>
+    <div class="row">
+      <button class="btn sec" id="shSpk">🔊 Escuchar</button>
+      <button class="btn" id="shNext">Siguiente</button>
+    </div>
+  </div>
+</div>
+
+<div id="slash"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M-5 18 L105 78"/></svg></div>
+<div id="breath"><b>💨 ¡Último aliento!</b><p>El héroe se levanta una vez más.<br>Te queda 1 vida.</p></div>
+<div id="rotate"><div style="font-size:44px">📱↻</div><p>Gira tu celular a vertical para jugar.</p></div>
+
+<script>
+/* ===== PARCA (SVG) ===== */
+const REAPER=`<ellipse class="rshadow" cx="60" cy="136" rx="30" ry="4" fill="#000" opacity=".45"/>
+<g class="rbody">
+ <g class="scythe">
+  <path d="M100 18 L84 132" stroke="#5a3b22" stroke-width="4.5" stroke-linecap="round"/>
+  <path d="M99.4 18 L83.4 132" stroke="#b8875c" stroke-width="1.2" stroke-linecap="round" opacity=".6"/>
+  <path d="M101 16 C80 2 46 4 28 24 C52 14 76 14 99 26 Z" fill="url(#rBlade)" stroke="#2b2f3a" stroke-width=".8"/>
+  <path d="M96 18 C78 9 54 9 38 19" stroke="#fff" stroke-width=".9" fill="none" opacity=".8"/>
+ </g>
+ <path d="M60 18 C36 18 30 48 28 80 L18 134 L30 126 L38 135 L48 126 L58 135 L68 126 L78 135 L88 126 L100 134 L90 80 C88 48 84 18 60 18Z" fill="url(#rRobe)"/>
+ <path d="M42 34 Q36 62 34 100 L39 100 Q41 64 47 36Z" fill="#fff" opacity=".1"/>
+ <ellipse cx="58" cy="46" rx="14" ry="17" fill="url(#rHood)"/>
+ <circle class="eye" cx="52" cy="46" r="4.5" fill="url(#rEye)"/>
+ <circle class="eye" cx="64" cy="46" r="4.5" fill="url(#rEye)"/>
+ <path d="M70 66 Q84 70 92 76 L88 85 Q78 81 68 79Z" fill="#15151f"/>
+ <circle cx="91" cy="80" r="3.6" fill="#dcd6c8"/>
+</g>`;
+const HERO=`<ellipse cx="50" cy="116" rx="26" ry="4" fill="#000" opacity=".35"/>
+<g class="hbody">
+ <path d="M30 40 Q50 34 70 40 L84 108 Q50 98 16 108 Z" fill="url(#hCape)"/>
+ <rect x="38" y="80" width="10" height="30" rx="4" fill="#1c3a8a"/>
+ <rect x="52" y="80" width="10" height="30" rx="4" fill="#1c3a8a"/>
+ <rect x="36" y="102" width="13" height="9" rx="3" fill="#8a1c2b"/>
+ <rect x="51" y="102" width="13" height="9" rx="3" fill="#8a1c2b"/>
+ <path d="M32 44 L22 72" stroke="#3a6fe0" stroke-width="9" stroke-linecap="round"/>
+ <path d="M68 44 L78 72" stroke="#1c3a8a" stroke-width="9" stroke-linecap="round"/>
+ <circle cx="22" cy="74" r="5" fill="url(#hSkin)"/>
+ <circle cx="78" cy="74" r="5" fill="url(#hSkin)"/>
+ <path d="M32 42 Q50 36 68 42 L64 84 Q50 88 36 84 Z" fill="url(#hSuit)"/>
+ <rect x="36" y="76" width="28" height="5" fill="#ffd166"/>
+ <path d="M50 50 l4 8 9 1 -7 6 2 9 -8 -5 -8 5 2 -9 -7 -6 9 -1z" fill="#ffd166"/>
+ <path d="M37 46 Q40 44 42 46 L40 80 Q37 80 37 78Z" fill="#fff" opacity=".2"/>
+ <circle cx="50" cy="26" r="13" fill="url(#hSkin)"/>
+ <path d="M37 24 Q40 10 52 12 Q64 12 63 24 Q58 17 50 18 Q42 17 37 24Z" fill="#2b1d14"/>
+ <rect x="39" y="22" width="22" height="6" rx="3" fill="#1c3a8a"/>
+ <circle cx="45" cy="25" r="1.6" fill="#fff"/><circle cx="55" cy="25" r="1.6" fill="#fff"/>
+ <g class="d d1"><path d="M58 48 l-4 6 3 4 -5 7" stroke="#0b0b14" stroke-width="1.8" fill="none"/></g>
+ <g class="d d2"><ellipse cx="56" cy="31" rx="3.5" ry="2.5" fill="#7a3b8f" opacity=".75"/><path d="M40 60 l5 4 -3 5 4 6" stroke="#0b0b14" stroke-width="1.8" fill="none"/><path d="M72 104 l-4 -9 -3 9 -4 -7 -2 8z" fill="#0f1220"/></g>
+ <g class="d d3"><path d="M44 32 l4 2" stroke="#c00" stroke-width="1.6"/><path d="M47 70 l6 -3 2 6 5 -2" stroke="#0b0b14" stroke-width="1.8" fill="none"/><path d="M20 106 l6 -11 3 8 4 -9 3 12z" fill="#0f1220"/></g>
+</g>`;
+document.getElementById('hero').innerHTML=HERO;
+document.getElementById('menuHero').innerHTML=HERO;
+document.getElementById('reaper').innerHTML=REAPER;
+document.getElementById('menuReaper').innerHTML=REAPER;
+
+/* ===== PREGUNTAS Y RESPUESTAS MODELO =====
+   pregunta | pronunciación | español | respuesta | pronunciación | español */
+const TOPICS=[{n:'Food',e:'🍔'},{n:'Studies',e:'📚'},{n:'Job',e:'💼'},{n:'Next weekend',e:'🎉'},{n:'Next summer',e:'☀️'},{n:'Traveling',e:'✈️'}];
+const RAW=[
+`Will you cook today?|uil iú kuk tu-DÉI|¿Cocinarás hoy?|Yes, I will cook today.|iés, ái uil kuk tu-DÉI|Sí, cocinaré hoy.
+Will you eat pizza tonight?|uil iú it PÍT-sa tu-NÁIT|¿Comerás pizza esta noche?|No, I will eat salad tonight.|nou, ái uil it SÁ-lad tu-NÁIT|No, comeré ensalada esta noche.
+What will you drink?|uat uil iú drink|¿Qué beberás?|I will drink orange juice.|ái uil drink Ó-ranch yus|Beberé jugo de naranja.
+Will you eat fruit tomorrow?|uil iú it frut tu-MÓ-rou|¿Comerás fruta mañana?|Yes, I will eat an apple.|iés, ái uil it an Á-pol|Sí, comeré una manzana.
+Are you going to cook dinner?|ar iú GÓ-ing tu kuk DÍ-ner|¿Vas a cocinar la cena?|Yes, I'm going to cook pasta.|iés, áim GÓ-ing tu kuk PÁS-ta|Sí, voy a cocinar pasta.
+What are you going to eat for lunch?|uat ar iú GÓ-ing tu it for lanch|¿Qué vas a almorzar?|I'm going to eat chicken and rice.|áim GÓ-ing tu it CHÍ-ken and ráis|Voy a comer pollo con arroz.
+Are you going to buy bread?|ar iú GÓ-ing tu bai bred|¿Vas a comprar pan?|Yes, I'm going to buy bread.|iés, áim GÓ-ing tu bai bred|Sí, voy a comprar pan.
+Where are you going to eat?|uer ar iú GÓ-ing tu it|¿Dónde vas a comer?|I'm going to eat at home.|áim GÓ-ing tu it at jóum|Voy a comer en casa.`,
+`Will you study tonight?|uil iú STÁ-di tu-NÁIT|¿Estudiarás esta noche?|Yes, I will study tonight.|iés, ái uil STÁ-di tu-NÁIT|Sí, estudiaré esta noche.
+Will you pass the exam?|uil iú pas di eg-ZÁM|¿Aprobarás el examen?|Yes, I will pass the exam.|iés, ái uil pas di eg-ZÁM|Sí, aprobaré el examen.
+Will you finish your degree?|uil iú FÍ-nish ior di-GRÍ|¿Terminarás tu carrera?|Yes, I will finish it next year.|iés, ái uil FÍ-nish it nekst iir|Sí, la terminaré el próximo año.
+What will you study tomorrow?|uat uil iú STÁ-di tu-MÓ-rou|¿Qué estudiarás mañana?|I will study math.|ái uil STÁ-di maz|Estudiaré matemáticas.
+Are you going to study English?|ar iú GÓ-ing tu STÁ-di ÍN-glish|¿Vas a estudiar inglés?|Yes, I'm going to study English.|iés, áim GÓ-ing tu STÁ-di ÍN-glish|Sí, voy a estudiar inglés.
+When are you going to do your homework?|uen ar iú GÓ-ing tu du ior JÓUM-uork|¿Cuándo vas a hacer tu tarea?|I'm going to do it tonight.|áim GÓ-ing tu du it tu-NÁIT|Voy a hacerla esta noche.
+Are you going to go to class tomorrow?|ar iú GÓ-ing tu gou tu klas tu-MÓ-rou|¿Vas a ir a clases mañana?|Yes, I'm going to go to class.|iés, áim GÓ-ing tu gou tu klas|Sí, voy a ir a clases.
+What are you going to study next year?|uat ar iú GÓ-ing tu STÁ-di nekst iir|¿Qué vas a estudiar el próximo año?|I'm going to study electrical engineering.|áim GÓ-ing tu STÁ-di i-LÉK-tri-kal en-yi-NÍ-ring|Voy a estudiar ingeniería eléctrica.`,
+`Will you work tomorrow?|uil iú uork tu-MÓ-rou|¿Trabajarás mañana?|Yes, I will work tomorrow.|iés, ái uil uork tu-MÓ-rou|Sí, trabajaré mañana.
+Will you change your job?|uil iú cheinch ior yob|¿Cambiarás de trabajo?|No, I won't change my job.|nou, ái uont cheinch mai yob|No, no cambiaré de trabajo.
+Will you get a promotion?|uil iú get a pro-MÓU-shon|¿Tendrás un ascenso?|Yes, I will get a promotion.|iés, ái uil get a pro-MÓU-shon|Sí, tendré un ascenso.
+What time will you finish work?|uat taim uil iú FÍ-nish uork|¿A qué hora terminarás de trabajar?|I will finish at six.|ái uil FÍ-nish at siks|Terminaré a las seis.
+Are you going to work on Saturday?|ar iú GÓ-ing tu uork on SÁ-ter-dei|¿Vas a trabajar el sábado?|No, I'm not going to work on Saturday.|nou, áim not GÓ-ing tu uork on SÁ-ter-dei|No, no voy a trabajar el sábado.
+Are you going to look for a new job?|ar iú GÓ-ing tu luk for a niu yob|¿Vas a buscar un trabajo nuevo?|Yes, I'm going to look for one.|iés, áim GÓ-ing tu luk for uan|Sí, voy a buscar uno.
+What are you going to do at work today?|uat ar iú GÓ-ing tu du at uork tu-DÉI|¿Qué vas a hacer hoy en el trabajo?|I'm going to fix a motor.|áim GÓ-ing tu fiks a MÓU-ter|Voy a reparar un motor.
+Are you going to ask for a raise?|ar iú GÓ-ing tu ask for a reis|¿Vas a pedir un aumento de sueldo?|Yes, I'm going to ask my boss.|iés, áim GÓ-ing tu ask mai bos|Sí, se lo voy a pedir a mi jefe.`,
+`Will you go out next weekend?|uil iú gou áut nekst UÍK-end|¿Saldrás el próximo fin de semana?|Yes, I will go out with friends.|iés, ái uil gou áut uiz frends|Sí, saldré con amigos.
+Will you sleep late?|uil iú slip leit|¿Dormirás hasta tarde?|Yes, I will sleep until ten.|iés, ái uil slip an-TÍL ten|Sí, dormiré hasta las diez.
+Will you visit your family?|uil iú VÍ-sit ior FÁ-mi-li|¿Visitarás a tu familia?|Yes, I will visit my parents.|iés, ái uil VÍ-sit mai PÉ-rents|Sí, visitaré a mis padres.
+What will you do next weekend?|uat uil iú du nekst UÍK-end|¿Qué harás el próximo fin de semana?|I will rest at home.|ái uil rest at jóum|Descansaré en casa.
+Are you going to watch a movie?|ar iú GÓ-ing tu uach a MÚ-vi|¿Vas a ver una película?|Yes, I'm going to watch a movie.|iés, áim GÓ-ing tu uach a MÚ-vi|Sí, voy a ver una película.
+Are you going to play soccer?|ar iú GÓ-ing tu plei SÓ-ker|¿Vas a jugar fútbol?|No, I'm not going to play soccer.|nou, áim not GÓ-ing tu plei SÓ-ker|No, no voy a jugar fútbol.
+Who are you going to see?|ju ar iú GÓ-ing tu si|¿A quién vas a ver?|I'm going to see my friends.|áim GÓ-ing tu si mai frends|Voy a ver a mis amigos.
+Where are you going to go?|uer ar iú GÓ-ing tu gou|¿A dónde vas a ir?|I'm going to go to the mall.|áim GÓ-ing tu gou tu di mol|Voy a ir al mall.`,
+`Will you go to the beach?|uil iú gou tu di bich|¿Irás a la playa?|Yes, I will go to the beach.|iés, ái uil gou tu di bich|Sí, iré a la playa.
+Will you take a vacation?|uil iú teik a vei-KÉI-shon|¿Tomarás vacaciones?|Yes, I will take a vacation in February.|iés, ái uil teik a vei-KÉI-shon in FÉ-bru-e-ri|Sí, tomaré vacaciones en febrero.
+Will you work next summer?|uil iú uork nekst SÁ-mer|¿Trabajarás el próximo verano?|Yes, I will work next summer.|iés, ái uil uork nekst SÁ-mer|Sí, trabajaré el próximo verano.
+What will you do next summer?|uat uil iú du nekst SÁ-mer|¿Qué harás el próximo verano?|I will travel to the south.|ái uil TRÁ-vel tu di sáuz|Viajaré al sur.
+Are you going to travel next summer?|ar iú GÓ-ing tu TRÁ-vel nekst SÁ-mer|¿Vas a viajar el próximo verano?|Yes, I'm going to travel to the north.|iés, áim GÓ-ing tu TRÁ-vel tu di norz|Sí, voy a viajar al norte.
+Are you going to swim?|ar iú GÓ-ing tu suim|¿Vas a nadar?|Yes, I'm going to swim in the sea.|iés, áim GÓ-ing tu suim in di si|Sí, voy a nadar en el mar.
+Where are you going to stay?|uer ar iú GÓ-ing tu stei|¿Dónde te vas a quedar?|I'm going to stay in a hotel.|áim GÓ-ing tu stei in a jou-TÉL|Me voy a quedar en un hotel.
+Are you going to rest?|ar iú GÓ-ing tu rest|¿Vas a descansar?|Yes, I'm going to rest a lot.|iés, áim GÓ-ing tu rest a lot|Sí, voy a descansar mucho.`,
+`Will you travel this year?|uil iú TRÁ-vel dis iir|¿Viajarás este año?|Yes, I will travel this year.|iés, ái uil TRÁ-vel dis iir|Sí, viajaré este año.
+Will you go by plane?|uil iú gou bai plein|¿Irás en avión?|No, I will go by bus.|nou, ái uil gou bai bas|No, iré en bus.
+Will you travel alone?|uil iú TRÁ-vel a-LÓUN|¿Viajarás solo?|No, I will travel with my family.|nou, ái uil TRÁ-vel uiz mai FÁ-mi-li|No, viajaré con mi familia.
+Where will you travel?|uer uil iú TRÁ-vel|¿A dónde viajarás?|I will travel to Peru.|ái uil TRÁ-vel tu pe-RÚ|Viajaré a Perú.
+Are you going to visit another country?|ar iú GÓ-ing tu VÍ-sit a-NÁ-der KÁN-tri|¿Vas a visitar otro país?|Yes, I'm going to visit Argentina.|iés, áim GÓ-ing tu VÍ-sit ar-yen-TÍ-na|Sí, voy a visitar Argentina.
+Who are you going to travel with?|ju ar iú GÓ-ing tu TRÁ-vel uiz|¿Con quién vas a viajar?|I'm going to travel with my friends.|áim GÓ-ing tu TRÁ-vel uiz mai frends|Voy a viajar con mis amigos.
+Are you going to take photos?|ar iú GÓ-ing tu teik FÓU-tous|¿Vas a sacar fotos?|Yes, I'm going to take a lot of photos.|iés, áim GÓ-ing tu teik a lot ov FÓU-tous|Sí, voy a sacar muchas fotos.
+How are you going to travel?|jáu ar iú GÓ-ing tu TRÁ-vel|¿Cómo vas a viajar?|I'm going to travel by car.|áim GÓ-ing tu TRÁ-vel bai kar|Voy a viajar en auto.`];
+const Q=[];
+RAW.forEach((b,t)=>b.trim().split('\n').forEach((l,i)=>{const[en,pr,es,aEn,aPr,aEs]=l.split('|');Q.push({id:Q.length,t,k:i<4?'will':'going',en,pr,es,aEn,aPr,aEs})}));
+
+const MODES={classic:{n:'Clásico',e:'✍️',d:'Fichas y escritura'},voice:{n:'Rol play',e:'🎙️',d:'Ordena con tu voz'}};
+const DIFFS={easy:{n:'Fácil',e:'😴'},normal:{n:'Normal',e:'⚔️'},hard:{n:'Muy difícil',e:'💀'}};
+const DDESC={
+  classic:{easy:'Pistas visibles, sin trampas, 5 vidas',normal:'Fichas trampa, 3 vidas por tema, jefe escrito',hard:'Todo escrito, 30 s, 1 vida, solo audio'},
+  voice:{easy:'Español y primera palabra marcada, 5 vidas',normal:'Palabras trampa, 3 vidas por tema',hard:'Las palabras desaparecen, 1 vida'}
+};
+const MAXL={easy:5,normal:3,hard:1};
+const MULT={easy:1,normal:2,hard:3};
+
+/* ===== UTILIDADES ===== */
+const $=s=>document.querySelector(s);
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=a=>a[Math.random()*a.length|0];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const stars=n=>'★'.repeat(n)+'☆'.repeat(3-n);
+const starsH=n=>`<span style="color:var(--acc)">${'★'.repeat(n)}</span><span style="color:#4a5177">${'★'.repeat(3-n)}</span>`;
+const NUM={'1':'one','2':'two','3':'three','4':'four','5':'five','6':'six','7':'seven','8':'eight','9':'nine','10':'ten','11':'eleven','12':'twelve'};
+function toks(s){
+  s=s.toLowerCase().replace(/[’`]/g,"'").replace(/[¿?¡!.,;:"]/g,' ');
+  s=s.replace(/\bi'm\b/g,'i am').replace(/\bi'll\b/g,'i will').replace(/\bwon't\b/g,'will not')
+     .replace(/\bdon't\b/g,'do not').replace(/\bgonna\b/g,'going to').replace(/\byou're\b/g,'you are')
+     .replace(/\bwhat's\b/g,'what is').replace(/\bit's\b/g,'it is').replace(/\bo'clock\b/g,'');
+  return s.split(/\s+/).filter(Boolean).map(w=>NUM[w]||w);
+}
+const same=(a,b)=>toks(a).join(' ')===toks(b).join(' ');
+function dispWords(text){const a=text.replace(/[?.,!]/g,'').split(' ');if(!/^I('|$)/.test(a[0]))a[0]=a[0].toLowerCase();return a}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id))}
+function anim(el,c){el.classList.remove(c);void el.getBoundingClientRect();el.classList.add(c)}
+
+/* ===== GUARDADO ===== */
+const KEY='heroeParca_v2';
+let store={best:{},errors:[]};
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s)store=Object.assign(store,s);
+  else{const o=JSON.parse(localStorage.getItem('heroeOlvido_v1'));if(o&&o.errors)store.errors=o.errors}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){}}
+
+/* ===== VOZ: HABLAR ===== */
+let voices=[];
+function loadV(){try{voices=speechSynthesis.getVoices()}catch(e){}}
+if('speechSynthesis' in window){loadV();speechSynthesis.onvoiceschanged=loadV}
+const enVoice=()=>voices.find(v=>/^en[-_]US/i.test(v.lang))||voices.find(v=>/^en/i.test(v.lang));
+function speak(t){
+  if(!('speechSynthesis' in window))return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=.85;const v=enVoice();if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}
+}
+
+/* ===== VOZ: ESCUCHAR ===== */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let rec=null;
+function stopRec(){if(rec){try{rec.abort()}catch(e){}rec=null}if(G)G.listening=false}
+
+/* ===== MENÚ ===== */
+let sel={mode:'classic',diff:'normal',topic:'all'};
+function renderMenu(){
+  $('#modes').innerHTML=Object.entries(MODES).map(([k,m])=>
+    `<button class="opt ${sel.mode===k?'sel':''}" data-m="${k}"><span class="oe">${m.e}</span><span><b>${m.n}</b><small>${m.d}</small></span></button>`).join('');
+  const v=sel.mode==='voice';
+  $('#srWarn').textContent=!v?'':!SR?errMsg('nosr'):!window.isSecureContext?errMsg('insecure'):'';
+  $('#diagBtn').style.display=v?'':'none';
+  if(!v)$('#diag').innerHTML='';
+  $('#diffs').innerHTML=Object.entries(DIFFS).map(([k,d])=>
+    `<button class="opt ${sel.diff===k?'sel':''}" data-d="${k}"><span class="oe">${d.e}</span><span><b>${d.n}</b><small>${DDESC[sel.mode][k]}</small></span></button>`).join('');
+  const best=((store.best[sel.mode]||{})[sel.diff])||{};
+  const opts=[['all','🌍','Todos los temas']].concat(TOPICS.map((t,i)=>[String(i),t.e,t.n]));
+  $('#topics').innerHTML=opts.map(([k,e,n])=>{const r=best[k];
+    return `<button class="tp ${sel.topic===k?'sel':''}" data-t="${k}"><span>${e} ${n}</span><small class="st">${starsH(r?r.stars:0)}</small></button>`}).join('');
+  const r=best[sel.topic];
+  $('#record').textContent=r?`🏅 Récord: ${r.score} pts · Rango ${r.rank||'—'}`:'🏅 Sin récord todavía';
+  const n=store.errors.length;
+  $('#reviewBtn').style.display=n?'':'none';
+  $('#reviewBtn').textContent=`🔁 Repasar errores (${n})`;
+}
+$('#modes').onclick=e=>{const b=e.target.closest('[data-m]');if(b){sel.mode=b.dataset.m;renderMenu()}};
+$('#diffs').onclick=e=>{const b=e.target.closest('[data-d]');if(b){sel.diff=b.dataset.d;renderMenu()}};
+$('#topics').onclick=e=>{const b=e.target.closest('[data-t]');if(b){sel.topic=b.dataset.t;renderMenu()}};
+$('#playBtn').onclick=()=>start(false);
+$('#diagBtn').onclick=diag;
+$('#reviewBtn').onclick=()=>start(true);
+
+/* ===== PARTIDA ===== */
+let G=null;
+function start(review){
+  if(review&&!store.errors.length)return;
+  let blocks;
+  if(review)blocks=[shuffle(store.errors.filter(i=>Q[i]))];
+  else{
+    const tps=sel.topic==='all'?[0,1,2,3,4,5]:[+sel.topic];
+    const ids=t=>Q.filter(q=>q.t===t).map(q=>q.id);
+    blocks=sel.diff==='hard'?[shuffle(tps.flatMap(ids))]:tps.map(t=>shuffle(ids(t)));
+  }
+  G={mode:sel.mode,diff:sel.diff,topic:sel.topic,review,blocks,bi:0,queue:[...blocks[0]],
+     maxL:MAXL[sel.diff],lives:MAXL[sel.diff],revived:false,powers:3,powersUsed:0,
+     score:0,streak:0,best:0,right:0,wrong:0,failed:[],total:blocks.reduce((a,b)=>a+b.length,0),
+     cleared:0,msg:'',timer:null,vanT:null,locked:false,tl:0,pronSum:0,pronN:0,miss:{}};
+  show('game');next();
+}
+
+function trapsFor(words,isWill,n){
+  const has=new Set(words.map(w=>w.toLowerCase()));
+  const pool=isWill?['going','are','am','to','be','do']:['will','is','be','does','do'];
+  return shuffle(pool.filter(w=>!has.has(w))).slice(0,n);
+}
+
+function next(){
+  if(!G.queue.length){
+    G.bi++;
+    if(G.bi>=G.blocks.length)return finish(true);
+    const prev=TOPICS[Q[G.blocks[G.bi-1][0]].t],nw=TOPICS[Q[G.blocks[G.bi][0]].t];
+    G.msg=`🏁 ¡${prev.n} liberado! El héroe se cura. Ahora: ${nw.e} ${nw.n}`;
+    G.queue=[...G.blocks[G.bi]];
+    if(!G.revived)G.lives=G.maxL;
+  }
+  G.cur=G.queue[0];
+  if(G.mode==='voice'){G.kind='voice';startPhase('q');return}
+  const q=Q[G.cur];
+  G.boss=G.diff==='normal'&&G.queue.length===1;
+  G.kind=G.diff==='easy'?'easy':(G.diff==='hard'||G.boss)?'type':'tiles';
+  G.audio=G.diff==='hard'&&!!enVoice()&&Math.random()<.3;
+  G.locked=false;G.powerQ=false;
+  G.words=dispWords(q.en);G.placed=[];
+  if(G.kind!=='type'){
+    let w=[...G.words];
+    if(G.kind==='tiles')w=w.concat(trapsFor(G.words,q.k==='will',Math.random()<.5?2:3));
+    G.tiles=shuffle(w).map((w,i)=>({id:i,w,used:false}));
+  }
+  renderClassic();
+  if(G.diff==='hard'){
+    G.lim=G.audio?40:30;G.tl=G.lim;const f=$('#tfill');f.style.transition='none';f.style.width='100%';
+    G.timer=setInterval(()=>{G.tl-=.1;f.style.width=Math.max(0,G.tl/G.lim*100)+'%';
+      if(G.tl<=0)answer(false,$('#inp')?$('#inp').value:'','⏰ Se acabó el tiempo.')},100);
+  }
+  if(G.audio)setTimeout(()=>speak(q.en),350);
+}
+
+/* ===== HUD ===== */
+function hud(){
+  const l=Math.max(0,G.lives);
+  $('#hearts').textContent=(G.revived?'💨':'')+'❤️'.repeat(l)+'🖤'.repeat(Math.max(0,(G.revived?1:G.maxL)-l));
+  $('#vhp').style.width=(G.total-G.cleared)/G.total*100+'%';
+  $('#prog').textContent=`${G.cleared}/${G.total}`;
+  $('#pts').textContent=`⭐${G.score}`;
+  $('#stk').textContent=G.streak>=2?`🔥${G.streak}`:'';
+  const pw=$('#pw');pw.textContent=`✨${G.powers}`;pw.disabled=!G.powers||G.powerQ||G.locked;
+  const lost=G.maxL-G.lives;
+  const lvl=G.revived?3:lost<=0?0:Math.min(3,Math.ceil(lost/G.maxL*3));
+  const h=$('#hero');['dmg1','dmg2','dmg3','last'].forEach(c=>h.classList.remove(c));
+  if(lvl)h.classList.add('dmg'+lvl);if(G.revived)h.classList.add('last');
+}
+function taunt(){
+  if(G.kind==='voice'&&G.diff==='hard')return pick(['Mira bien… las palabras se van a desvanecer.','Mi guadaña espera tu error.']);
+  if(G.audio)return 'Borré el español. Solo te queda el oído 👂';
+  if(G.boss)return '👑 Soy el jefe. Sin fichas. ¡Escríbela!';
+  if(G.diff==='easy')return pick(['Hoy estoy de buen humor… por ahora.','Te dejo pistas. No te acostumbres.']);
+  if(G.diff==='normal')return pick(['Escondí palabras trampa.','¿Will o going to? Adivina…','Mi guadaña tiene hambre.']);
+  return pick(['El reloj corre ⏳','Una vida. Un error. Un corte.','Sin fichas, sin piedad.']);
+}
+function setBubble(){$('#bubble').textContent=G.msg||('💀 '+taunt());G.msg=''}
+
+/* ===== MODO CLÁSICO ===== */
+function renderClassic(){
+  const q=Q[G.cur],T=TOPICS[q.t];
+  $('#game').classList.toggle('typing',G.kind==='type');
+  $('#tpl').textContent=`${T.e} ${T.n}`;
+  hud();
+  $('#lbl').textContent=G.boss?'👑 Jefe del tema · escríbela':G.diff==='hard'?'💀 Escríbela en inglés':'Arma la pregunta en inglés';
+  $('#hint').textContent='';
+  if(G.audio){
+    $('#es').innerHTML='<div class="audio">💀 La Parca borró el español.<br>Escucha y escríbela.</div><button class="mini" id="replay">🔊 Escuchar otra vez</button>';
+    $('#replay').onclick=()=>speak(q.en);
+  }else $('#es').textContent=q.es;
+  setBubble();
+  $('#tbar').style.display=G.diff==='hard'?'block':'none';
+  const act=$('#action');act.style.display=G.kind==='easy'?'none':'';act.textContent='Comprobar';act.disabled=G.kind==='tiles';
+  if(G.kind==='type'){
+    $('#zone').innerHTML='<input id="inp" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="Escribe en inglés…">';
+    const inp=$('#inp');inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();check()}};
+    setTimeout(()=>inp.focus(),60);
+  }else{
+    $('#zone').innerHTML='<div class="slots" id="slots"></div><div class="tiles" id="tiles"></div>';
+    renderTiles();
+  }
+}
+function renderTiles(){
+  const s=$('#slots'),t=$('#tiles');
+  if(G.kind==='easy'){
+    s.innerHTML=G.words.map((w,i)=>`<span class="chip ${i<G.placed.length?'':'ghost'}">${esc(w)}</span>`).join('')+'<span class="q">?</span>';
+  }else{
+    s.innerHTML=(G.placed.length?G.placed.map(id=>`<button class="chip" data-p="${id}">${esc(G.tiles[id].w)}</button>`).join(''):'<span class="ph">Toca las fichas en orden</span>')+'<span class="q">?</span>';
+    $('#action').disabled=!G.placed.length;
+  }
+  const exp=G.words[G.placed.length];let glowed=false;
+  t.innerHTML=G.tiles.map(x=>{
+    let c='tile'+(x.used?' used':'');
+    if(G.kind==='easy'&&!x.used&&!glowed&&x.w===exp){c+=' glow';glowed=true}
+    return `<button class="${c}" data-id="${x.id}">${esc(x.w)}</button>`}).join('');
+}
+$('#zone').addEventListener('click',e=>{
+  if(!G||G.locked||G.kind==='voice')return;
+  const p=e.target.closest('[data-p]'),b=e.target.closest('[data-id]');
+  if(p){const id=+p.dataset.p;G.placed=G.placed.filter(i=>i!==id);G.tiles[id].used=false;renderTiles();return}
+  if(!b)return;
+  const x=G.tiles[+b.dataset.id];if(x.used)return;
+  if(G.kind==='easy'){
+    if(x.w!==G.words[G.placed.length]){anim(b,'shake');return}
+    x.used=true;G.placed.push(x.id);renderTiles();easyDone();return;
+  }
+  x.used=true;G.placed.push(x.id);renderTiles();
+});
+function easyDone(){if(G.placed.length===G.words.length){G.locked=true;setTimeout(()=>{G.locked=false;answer(true,'')},250)}}
+function check(){
+  if(!G||G.locked)return;
+  let user;
+  if(G.kind==='type'){user=$('#inp').value;if(!user.trim())return}
+  else user=G.placed.map(i=>G.tiles[i].w).join(' ');
+  answer(same(user,Q[G.cur].en),user);
+}
+$('#action').onclick=check;
+
+/* ===== MODO ROL PLAY (VOZ) ===== */
+function startPhase(ph){
+  const q=Q[G.cur],T=TOPICS[q.t];
+  G.phase=ph;G.attempt=0;G.locked=false;G.powerQ=false;G.hintN=0;G.vanished=false;
+  clearTimeout(G.vanT);
+  const target=ph==='q'?q.en:q.aEn;
+  G.words=dispWords(target);
+  G.traps=G.diff==='normal'?trapsFor(G.words,q.k==='will',2):[];
+  G.vwords=shuffle(G.words.concat(G.traps));
+  $('#game').classList.remove('typing');
+  $('#tpl').textContent=`${T.e} ${T.n}`;
+  hud();
+  $('#lbl').textContent=ph==='q'?'🎙️ Turno 1/2 · Haz la pregunta':'🎙️ Turno 2/2 · Responde';
+  $('#hint').textContent='';
+  if(ph==='q')$('#es').textContent=q.es;
+  else if(G.diff==='hard')$('#es').innerHTML='<div class="audio">💀 La Parca te pregunta… (solo audio)</div><button class="mini" id="replay">🔊 Escuchar otra vez</button>';
+  else $('#es').innerHTML=`<div class="ask">💀 “${esc(q.en)}”</div><div class="guide">Responde: ${esc(q.aEs)}</div><button class="mini" id="replay">🔊 Escuchar</button>`;
+  const rp=$('#replay');if(rp)rp.onclick=()=>speak(q.en);
+  setBubble();
+  $('#action').style.display='none';
+  $('#zone').innerHTML=`<div class="vw" id="vw"></div><div class="start" id="startL"></div>
+    <div class="heard" id="heard">${!SR?errMsg('nosr'):!window.isSecureContext?errMsg('insecure'):'Toca 🎙️ y di la frase en orden.'}</div>
+    <button class="mic" id="mic" ${SR?'':'disabled'}>🎙️</button>`;
+  $('#mic').onclick=listen;
+  renderVW();
+  const f=$('#tfill');
+  if(G.diff==='hard'){
+    const secs=4+G.words.length*.6;
+    $('#tbar').style.display='block';f.style.transition='none';f.style.width='100%';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{f.style.transition=`width ${secs}s linear`;f.style.width='0%'}));
+    G.vanT=setTimeout(()=>{G.vanished=true;renderVW()},secs*1000);
+  }else $('#tbar').style.display='none';
+  if(ph==='a')setTimeout(()=>speak(q.en),400);
+}
+function renderVW(){
+  const vw=$('#vw');if(!vw)return;
+  const list=G.hintN?G.vwords.filter(w=>!G.traps.includes(w)||G.words.includes(w)):G.vwords;
+  let glowed=false;
+  vw.innerHTML=list.map(w=>{
+    let c='vchip';
+    if(G.vanished&&!G.hintN)c+=' hid';
+    else if(G.diff==='easy'&&!glowed&&w===G.words[0]){c+=' glow';glowed=true}
+    return `<span class="${c}">${esc(w)}</span>`}).join('');
+  $('#startL').innerHTML=G.hintN?`Empieza así: <b>${esc(G.words.slice(0,G.hintN).join(' '))} …</b>`:'';
+}
+function setMic(){const m=$('#mic');if(m){m.classList.toggle('on',!!G.listening);m.textContent=G.listening?'⏹':'🎙️'}}
+const ERRS={
+  'not-allowed':'Permiso de micrófono denegado. Actívalo en el ícono a la izquierda de la dirección en Chrome.',
+  'service-not-allowed':'El servicio de voz está bloqueado. Revisa la app Google del celular.',
+  'network':'Sin internet. El reconocimiento de voz necesita conexión.',
+  'audio-capture':'No se pudo usar el micrófono. Cierra otras apps que lo estén usando.',
+  'no-speech':'No te escuché. Habla más cerca del micrófono.',
+  'aborted':'Se canceló la escucha.',
+  'language-not-supported':'El inglés no está disponible en el servicio de voz.',
+  'insecure':'Abre el juego desde una dirección https:// (GitHub Pages). Con content:// o file:// el micrófono no funciona.',
+  'nomedia':'Este navegador no permite usar el micrófono.',
+  'nosr':'Este navegador no reconoce voz. Usa Chrome.',
+  'timeout':'No llegó audio en 10 segundos. Revisa el permiso del micrófono.'
+};
+const errMsg=c=>'⚠️ '+(ERRS[c]||'Error de voz.')+` (código: ${c})`;
+let micReady=false;
+async function ensureMic(){
+  if(micReady)return;
+  if(!window.isSecureContext)throw 'insecure';
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw 'nomedia';
+  try{const st=await navigator.mediaDevices.getUserMedia({audio:true});st.getTracks().forEach(t=>t.stop())}
+  catch(e){throw (e&&(e.name==='NotAllowedError'||e.name==='SecurityError'))?'not-allowed':'audio-capture'}
+  micReady=true;
+}
+/* Escucha una vez. cb(alternativas | null, códigoError) */
+function hearOnce(onText,cb){
+  let alts=null,interim='',err=null,got=false,done=false;
+  const r=new SR();r.lang='en-US';r.interimResults=true;r.maxAlternatives=5;r.continuous=false;
+  const wd=setTimeout(()=>{if(!got){err='timeout';try{r.abort()}catch(e){}}},10000);
+  r.onresult=e=>{
+    got=true;let txt='';for(const x of e.results)txt+=x[0].transcript;
+    interim=txt;onText&&onText(txt);
+    const last=e.results[e.results.length-1];
+    if(last.isFinal)alts=Array.from(last).map(a=>a.transcript);
+  };
+  r.onerror=e=>{if(err!=='timeout')err=e.error};
+  r.onend=()=>{
+    if(done)return;done=true;clearTimeout(wd);
+    if(alts&&alts.length)return cb(alts,null);
+    if(interim.trim())return cb([interim],null);   /* texto escuchado a medias */
+    cb(null,err||'no-speech');
+  };
+  try{r.start()}catch(e){clearTimeout(wd);done=true;cb(null,'audio-capture');return null}
+  return r;
+}
+async function listen(){
+  if(!G||G.locked)return;
+  const h=$('#heard');
+  if(!SR){h.textContent=errMsg('nosr');return}
+  if(G.listening){try{rec.stop()}catch(e){}return}
+  try{await ensureMic()}catch(c){h.textContent=errMsg(c);return}
+  try{speechSynthesis.cancel()}catch(e){}
+  G.listening=true;setMic();h.textContent='🎧 Escuchando…';
+  rec=hearOnce(t=>{h.textContent='🎧 '+t},(alts,err)=>{
+    G.listening=false;setMic();rec=null;
+    if(G.locked||!$('#heard'))return;
+    if(alts)return evalVoice(alts);
+    $('#heard').textContent=errMsg(err);
+  });
+  if(!rec){G.listening=false;setMic()}
+}
+/* ===== DIAGNÓSTICO DEL MICRÓFONO ===== */
+async function diag(){
+  const d=$('#diag'),L=[];
+  const out=()=>{d.innerHTML=L.join('<br>')};
+  const sec=window.isSecureContext;
+  L.push(`${sec?'✅':'❌'} Dirección segura: <b>${esc(location.protocol)}</b>`);
+  L.push(`${SR?'✅':'❌'} Reconocimiento de voz en el navegador`);
+  L.push(`${enVoice()?'✅':'⚠️'} Voz en inglés para escuchar frases`);
+  out();
+  if(!sec){L.push(errMsg('insecure'));return out()}
+  if(!SR){L.push(errMsg('nosr'));return out()}
+  try{await ensureMic();L.push('✅ Permiso del micrófono')}catch(c){L.push('❌ Permiso del micrófono');L.push(errMsg(c));return out()}
+  L.push('🎙️ Di en inglés: <b>Hello, how are you?</b>');out();
+  const i=L.length;L.push('🎧 Escuchando…');out();
+  hearOnce(t=>{L[i]='🎧 '+esc(t);out()},(alts,err)=>{
+    L[i]=alts?`✅ Te escuché: <b>${esc(alts[0])}</b><br>🎉 La voz funciona. Ya puedes jugar el Rol play.`:errMsg(err);out();
+  });
+}
+function align(exp,heard){
+  const n=exp.length,m=heard.length,d=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+  for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)d[i][j]=exp[i]===heard[j]?d[i+1][j+1]+1:Math.max(d[i+1][j],d[i][j+1]);
+  const ok=new Array(n).fill(false);let i=0,j=0;
+  while(i<n&&j<m){if(exp[i]===heard[j]){ok[i]=true;i++;j++}else if(d[i+1][j]>=d[i][j+1])i++;else j++}
+  return ok;
+}
+function grade(alt,target){
+  const exp=toks(target),h=toks(alt),ok=align(exp,h);
+  const trapT=G.traps.map(w=>w.toLowerCase());
+  const trapSaid=h.filter(w=>trapT.includes(w)&&!exp.includes(w)).length;
+  const pct=Math.max(0,Math.round((ok.filter(Boolean).length-trapSaid)/exp.length*100));
+  return {pct,ok,exp,alt,trapSaid};
+}
+const tokHTML=g=>g.exp.map((t,i)=>`<span class="tk ${g.ok[i]?'y':'n'}">${esc(t)}</span>`).join(' ');
+function evalVoice(alts){
+  const q=Q[G.cur],target=G.phase==='q'?q.en:q.aEn;
+  let g=null;for(const a of alts){const r=grade(a,target);if(!g||r.pct>g.pct)g=r}
+  G.attempt++;
+  if(g.pct>=80)return answer(true,g.alt,null,g);
+  if(g.pct>=50&&G.attempt===1){
+    $('#heard').innerHTML=`😬 Casi (${g.pct}%). Inténtalo otra vez:<br>${tokHTML(g)}`;
+    $('#bubble').textContent='💀 Te salvaste… esta vez.';
+    return;
+  }
+  answer(false,g.alt,g.trapSaid?'❌ Dijiste una palabra trampa.':null,g);
+}
+
+/* ===== PODER DEL HÉROE ===== */
+$('#pw').onclick=()=>{
+  if(!G||G.locked||G.powers<=0||G.powerQ)return;
+  G.powers--;G.powersUsed++;G.powerQ=true;
+  anim($('#hero'),'power');
+  $('#bubble').textContent='✨ ¡El héroe usó su poder!';
+  if(G.kind==='easy'){
+    for(let k=0;k<2&&G.placed.length<G.words.length;k++){
+      const x=G.tiles.find(t=>!t.used&&t.w===G.words[G.placed.length]);x.used=true;G.placed.push(x.id);
+    }
+    renderTiles();easyDone();
+  }else if(G.kind==='tiles'){
+    const sh=shuffle(G.words.map((w,wi)=>({w,wi}))).map((o,id)=>({id,w:o.w,wi:o.wi,used:o.wi<2}));
+    G.tiles=sh;G.placed=[0,1].map(wi=>sh.find(t=>t.wi===wi).id);
+    renderTiles();
+  }else if(G.kind==='type'){
+    $('#hint').textContent=Q[G.cur].en.replace('?','').split(' ').map((w,i)=>i<2?w:w[0]+'_'.repeat(w.length-1)).join(' ')+' ?';
+  }else{
+    G.hintN=2;G.vanished=false;renderVW();
+  }
+  hud();
+};
+
+/* ===== EFECTOS ===== */
+function slash(){
+  anim($('#slash'),'go');anim($('#reaper'),'swing');
+  setTimeout(()=>{anim($('#hero'),'hit');anim($('#game'),'quake')},180);
+  try{navigator.vibrate&&navigator.vibrate([60,40,120])}catch(e){}
+}
+function villainHit(){anim($('#hero'),'atk');setTimeout(()=>anim($('#reaper'),'hurt'),160)}
+
+/* ===== RESPUESTA ===== */
+function markFail(id){
+  if(!G.failed.includes(id))G.failed.push(id);
+  if(!store.errors.includes(id))store.errors.push(id);
+  if(G.diff!=='hard')G.queue.splice(Math.min(2,G.queue.length),0,id);
+}
+function answer(ok,user,why,vx){
+  if(G.locked)return;G.locked=true;
+  clearInterval(G.timer);clearTimeout(G.vanT);stopRec();
+  const q=Q[G.cur],voice=G.kind==='voice';
+  const tg=voice&&G.phase==='a'?{en:q.aEn,pr:q.aPr,es:q.aEs}:{en:q.en,pr:q.pr,es:q.es};
+  if(vx){G.pronSum+=vx.pct;G.pronN++;vx.exp.forEach((t,i)=>{if(!vx.ok[i])G.miss[t]=(G.miss[t]||0)+1})}
+  let title;
+  if(ok){
+    G.right++;G.streak++;G.best=Math.max(G.best,G.streak);
+    const base={easy:5,normal:10,hard:20}[G.diff];
+    G.score+=base+Math.min(G.streak,10)*2+(G.diff==='hard'&&!voice?Math.ceil(G.tl):0)+(vx?Math.round(vx.pct/10):0);
+    title=pick(['✅ ¡Correcto! El héroe ataca.','✅ ¡Golpe a la Parca!','✅ ¡Lo lograste!'])+(G.streak>=3?` 🔥x${G.streak}`:'');
+    villainHit();
+  }else{
+    G.wrong++;G.streak=0;G.lives--;
+    title=why||pick(['❌ La guadaña te alcanzó.','❌ ¡Corte! Pierdes una vida.','❌ La Parca gana terreno.']);
+    slash();
+  }
+  if(voice){
+    if(G.phase==='q')G.qOk=ok;
+    else{G.queue.shift();if(G.qOk&&ok){G.cleared++;if(G.review)store.errors=store.errors.filter(i=>i!==q.id)}else markFail(q.id)}
+  }else{
+    G.queue.shift();
+    if(ok){G.cleared++;if(G.review)store.errors=store.errors.filter(i=>i!==q.id)}else markFail(q.id);
+  }
+  save();hud();
+  if($('#inp'))$('#inp').blur();
+  setTimeout(()=>{
+    $('#shIn').className='sh-in '+(ok?'ok':'bad');
+    $('#shT').textContent=title;
+    $('#shU').innerHTML=!ok&&user&&user.trim()?`${voice?'Escuché':'Tu respuesta'}: <s>${esc(user)}</s>`:'';
+    $('#shU').style.display=$('#shU').innerHTML?'':'none';
+    $('#shV').innerHTML=vx?`<span class="pct">🎙️ Pronunciación: ${vx.pct}%</span><br>${tokHTML(vx)}`:'';
+    $('#shEn').textContent=tg.en;$('#shPr').textContent=`/${tg.pr}/`;$('#shEs').textContent=tg.es;
+    $('#shNext').textContent=G.lives<=0?(G.revived?'Ver resultado':'💨 Levantarse'):(voice&&G.phase==='q'?'Turno 2 →':'Siguiente');
+    $('#shSpk').onclick=()=>speak(tg.en);
+    $('#sheet').classList.add('on');
+    speak(tg.en);
+  },ok?250:700);
+}
+$('#shNext').onclick=()=>{
+  $('#sheet').classList.remove('on');
+  if(G.lives<=0){
+    if(G.revived)return finish(false);
+    G.revived=true;G.lives=1;
+    $('#breath').classList.add('on');hud();
+    setTimeout(()=>{$('#breath').classList.remove('on');cont()},1800);
+    return;
+  }
+  cont();
+};
+function cont(){if(G.kind==='voice'&&G.phase==='q')startPhase('a');else next()}
+
+$('#quit').onclick=function(){
+  if(this.dataset.c){
+    clearInterval(G.timer);clearTimeout(G.vanT);stopRec();try{speechSynthesis.cancel()}catch(e){}
+    this.dataset.c='';this.textContent='✕';renderMenu();show('menu');
+  }else{
+    this.dataset.c='1';this.textContent='¿Salir?';
+    setTimeout(()=>{this.dataset.c='';this.textContent='✕'},2500);
+  }
+};
+
+/* ===== RESULTADO ===== */
+function finish(win){
+  clearInterval(G.timer);clearTimeout(G.vanT);stopRec();
+  const m=MULT[G.diff];
+  const lifeB=win?G.lives*25*m:0, powB=win?G.powers*30*m:0, revB=win&&!G.revived?100*m:0;
+  const total=G.score+lifeB+powB+revB;
+  const acc=G.right+G.wrong?Math.round(G.right/(G.right+G.wrong)*100):0;
+  let rank='D';
+  if(win){rank=G.wrong===0&&G.powersUsed===0&&!G.revived?'S':acc>=90&&!G.revived?'A':acc>=70?'B':'C'}
+  const st=win?(G.wrong===0?3:G.wrong<=2?2:1):0;
+  let rec=false;
+  if(!G.review){
+    const bm=store.best[G.mode]=store.best[G.mode]||{};
+    const b=bm[G.diff]=bm[G.diff]||{};
+    const r=b[G.topic]||{stars:0,score:0,rank:'—'};
+    rec=total>r.score&&total>0;
+    const order='DCBAS';
+    b[G.topic]={stars:Math.max(r.stars,st),score:Math.max(r.score,total),
+      rank:order.indexOf(rank)>order.indexOf(r.rank||'D')?rank:(r.rank||rank)};
+    save();
+  }
+  const tn=G.review?'Repaso de errores':G.topic==='all'?'Todos los temas':TOPICS[+G.topic].n;
+  const rk=$('#rRank');rk.textContent=rank;rk.className='rank '+rank;
+  $('#rT').textContent=win?(G.review?'¡Errores repasados!':'¡El héroe venció a la Parca!'):'La Parca ganó esta vez';
+  $('#rS').innerHTML=starsH(st);
+  $('#rSub').textContent=`${MODES[G.mode].e} ${MODES[G.mode].n} · ${DIFFS[G.diff].e} ${DIFFS[G.diff].n} · ${tn}`;
+  $('#rRec').textContent=rec?'🎉 ¡Nuevo récord!':'';
+  const pron=G.pronN?Math.round(G.pronSum/G.pronN):null;
+  $('#rB').innerHTML=
+    `<div><span>✅ Aciertos y rachas</span><b>${G.score}</b></div>`+
+    `<div><span>❤️ Vidas restantes (${win?G.lives:0})</span><b>+${lifeB}</b></div>`+
+    `<div><span>✨ Poderes sin usar (${win?G.powers:0})</span><b>+${powB}</b></div>`+
+    `<div><span>💨 ${G.revived?'Usaste el último aliento':'Sin último aliento'}</span><b>+${revB}</b></div>`+
+    `<div><span>🎯 Aciertos</span><b>${acc}%</b></div>`+
+    `<div><span>🔥 Mejor racha</span><b>${G.best}</b></div>`+
+    (pron!==null?`<div><span>🎙️ Pronunciación promedio</span><b>${pron}%</b></div>`:'')+
+    `<div class="tot"><span>Total</span><b>${total} pts</b></div>`;
+  let html='';
+  const weak=Object.entries(G.miss).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  if(weak.length)html+='<h2>Palabras que más te costaron</h2>'+weak.map(([w,n])=>`<div class="fi"><div><b>${esc(w)}</b><span class="es2">${n} ${n>1?'veces':'vez'}</span></div><button data-w="${esc(w)}">🔊</button></div>`).join('');
+  html+=G.failed.length
+    ?'<h2>Para repasar</h2>'+G.failed.map(i=>{const q=Q[i];return `<div class="fi"><div><b>${esc(q.en)}</b><span class="pr">/${esc(q.pr)}/</span><span class="es2">${esc(q.es)}</span>${G.mode==='voice'?`<b style="margin-top:6px">${esc(q.aEn)}</b><span class="pr">/${esc(q.aPr)}/</span><span class="es2">${esc(q.aEs)}</span>`:''}</div><button data-say="${i}">🔊</button></div>`}).join('')
+    :'<p class="clean">✨ Sin errores. ¡Excelente!</p>';
+  $('#rF').innerHTML=html;
+  const n=store.errors.length;
+  $('#rRev').style.display=n?'':'none';
+  $('#rRev').textContent=`🔁 Repasar errores (${n})`;
+  show('result');
+}
+$('#rF').onclick=e=>{
+  const b=e.target.closest('[data-say]');if(b){const q=Q[+b.dataset.say];speak(G.mode==='voice'?q.en+'. '+q.aEn:q.en);return}
+  const w=e.target.closest('[data-w]');if(w)speak(w.dataset.w);
+};
+$('#rRev').onclick=()=>start(true);
+$('#rAgain').onclick=()=>start(G.review&&store.errors.length>0);
+$('#rMenu').onclick=()=>{renderMenu();show('menu')};
+
+renderMenu();
+</script>
+</body>
+</html>
