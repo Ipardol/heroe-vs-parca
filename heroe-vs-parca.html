@@ -184,6 +184,9 @@ h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
 .modes{grid-template-columns:repeat(3,1fr)!important}
 .modes .opt{flex-direction:column;text-align:center;gap:2px;padding:10px 4px}
 .modes .opt small{font-size:11.5px}
+.modes.styles4{grid-template-columns:1fr 1fr!important}
+.modes.styles4 .opt{flex-direction:row;justify-content:center;gap:8px;min-height:52px}
+#getready.big{font-size:56px;font-weight:900;color:var(--acc);top:30%;text-shadow:0 4px 16px #000}
 #game.rhythm #zone{flex:1;display:flex;flex-direction:column;min-height:0}
 #game.rhythm .spacer{display:none}
 #game.rhythm .bubble{margin:6px 0;font-size:12.5px}
@@ -242,7 +245,7 @@ h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
   <div id="srWarn" class="warn"></div>
   <button id="diagBtn" class="btn sec" style="margin-top:8px;min-height:48px;font-size:16px">🔧 Probar micrófono</button>
   <div id="diag" class="note" style="text-align:left"></div>
-  <div id="stylesBox"><h2>Estilo de música</h2><div id="styles" class="modes"></div></div>
+  <div id="stylesBox"><h2>Estilo de música</h2><div id="styles" class="modes styles4"></div></div>
   <h2>Dificultad</h2>
   <div id="diffs" class="diffs"></div>
   <h2>Tema</h2>
@@ -419,8 +422,9 @@ const Q=[];
 RAW.forEach((b,t)=>b.trim().split('\n').forEach((l,i)=>{const[en,pr,es,aEn,aPr,aEs]=l.split('|');Q.push({id:Q.length,t,k:i<4?'will':'going',en,pr,es,aEn,aPr,aEs})}));
 
 const MODES={classic:{n:'Clásico',e:'✍️',d:'Fichas y escritura'},voice:{n:'Rol play',e:'🎙️',d:'Ordena con tu voz'},rhythm:{n:'Ritmo',e:'🎸',d:'Responde al ritmo'}};
-const STYLES={rock:{n:'Rock',e:'🎸',bpm:112},electro:{n:'Electrónica',e:'🎛️',bpm:124},lofi:{n:'Lo-fi',e:'🎧',bpm:82}};
-const SPEED={easy:.75,normal:1,hard:1.25};
+const STYLES={rock:{n:'Rock',e:'🎸',bpm:112},electro:{n:'Electrónica',e:'🎛️',bpm:124},lofi:{n:'Lo-fi',e:'🎧',bpm:82},metal:{n:'Metal infernal',e:'🔥',bpm:138}};
+const SPEED={easy:.7,normal:.9,hard:1.15};
+const TRAVEL={easy:6,normal:5,hard:4},GAP={easy:3,normal:2,hard:2};
 const DIFFS={easy:{n:'Fácil',e:'😴'},normal:{n:'Normal',e:'⚔️'},hard:{n:'Muy difícil',e:'💀'}};
 const DDESC={
   classic:{easy:'Pistas visibles, sin trampas, 5 vidas',normal:'Fichas trampa, 3 vidas por tema, jefe escrito',hard:'Todo escrito, 30 s, 1 vida, solo audio'},
@@ -961,7 +965,8 @@ $('#rMenu').onclick=()=>{renderMenu();show('menu')};
 const mf=m=>440*Math.pow(2,(m-69)/12);
 const Music={ctx:null,master:null,timer:null,i:0,spb:.5,t0:0,style:'rock',hiss:null,prevT:null,
   init(){if(!this.ctx){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;this.ctx=new AC();
-    const b=this.ctx.createBuffer(1,this.ctx.sampleRate,this.ctx.sampleRate),d=b.getChannelData(0);for(let k=0;k<d.length;k++)d[k]=Math.random()*2-1;this.nb=b}
+    const b=this.ctx.createBuffer(1,this.ctx.sampleRate,this.ctx.sampleRate),d=b.getChannelData(0);for(let k=0;k<d.length;k++)d[k]=Math.random()*2-1;this.nb=b;
+    const cv=new Float32Array(1024);for(let k=0;k<1024;k++){const x=k/512-1;cv[k]=Math.tanh(x*9)}this.curve=cv}
     try{this.ctx.resume()}catch(e){}return true},
   start(style,bpm){if(!this.init())return;this.stop();const c=this.ctx;
     this.master=c.createGain();this.master.gain.value=.5;this.master.connect(c.destination);
@@ -983,6 +988,8 @@ const Music={ctx:null,master:null,timer:null,i:0,spb:.5,t0:0,style:'rock',hiss:n
   snare(t,v,soft){this.noise(t,v,soft?.1:.18,soft?'bandpass':'highpass',soft?2500:1400);const o=this.ctx.createOscillator();o.type='triangle';o.frequency.value=soft?320:190;o.connect(this.env(t,v*.5,.08));o.start(t);o.stop(t+.1)},
   hat(t,v,open){this.noise(t,v,open?.22:.045,'highpass',7500)},
   tone(t,m,dur,type,v,cut,att){const o=this.ctx.createOscillator();o.type=type;o.frequency.value=mf(m);const f=this.ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=cut;o.connect(f).connect(this.env(t,v,dur,att));o.start(t);o.stop(t+dur+.05)},
+  click(t,hi){const o=this.ctx.createOscillator();o.type='sine';o.frequency.value=hi?1320:880;o.connect(this.env(t,.35,.12));o.start(t);o.stop(t+.15)},
+  dist(t,m,dur,v){const c=this.ctx,o=c.createOscillator(),o2=c.createOscillator(),sh=c.createWaveShaper(),f=c.createBiquadFilter();o.type=o2.type='sawtooth';o.frequency.value=mf(m);o2.frequency.value=mf(m+7);o2.detune.value=6;sh.curve=this.curve;f.type='lowpass';f.frequency.value=2400;const pre=c.createGain();pre.gain.value=.5;o.connect(pre);o2.connect(pre);pre.connect(sh).connect(f).connect(this.env(t,v,dur));o.start(t);o2.start(t);o.stop(t+dur+.05);o2.stop(t+dur+.05)},
   play(i,t){
     const pos=i%16,bar=Math.floor(i/16)%4,sp=this.spb;
     if(this.style==='rock'){
@@ -999,6 +1006,13 @@ const Music={ctx:null,master:null,timer:null,i:0,spb:.5,t0:0,style:'rock',hiss:n
       if(pos%4===2){this.hat(t,.12,true);this.tone(t,R-12,sp*.4,'sawtooth',.18,500)}
       else this.hat(t,.04);
       this.tone(t,R+24+ch[pos%4],sp*.22,'square',.035,2600);
+    }else if(this.style==='metal'){
+      const R=[38,38,41,36][bar],riff=[0,0,0,null,0,0,3,null,0,0,5,null,0,6,5,3];
+      if(pos===0&&bar===0)this.noise(t,.22,1.4,'highpass',5000);
+      if(pos%2===0||bar===3)this.kick(t,.75);
+      if(pos===4||pos===12)this.snare(t,.5);
+      if(pos%2===0)this.hat(t,.05);
+      const n=riff[pos];if(n!==null)this.dist(t,R+n,sp*(n?.5:.22),n?.11:.09);
     }else{
       const R=[50,43,48,45][bar],ch=[[0,3,7,10],[0,4,7,10],[0,4,7,11],[0,3,7,10]][bar];
       const sw=pos%4===2?sp*.09:0;
@@ -1028,7 +1042,7 @@ function decoys(w,easy){
   let guard=0;while(out.length<3&&guard++<200)add(pick(CONTENT));
   return out.slice(0,3);
 }
-const WIN={easy:{p:.14,g:.36},normal:{p:.12,g:.28},hard:{p:.1,g:.24}};
+const WIN={easy:{p:.16,g:.45},normal:{p:.14,g:.34},hard:{p:.11,g:.26}};
 function speakThen(t,cb){
   let done=false;const fin=()=>{if(done)return;done=true;cb()};
   if(!('speechSynthesis' in window)){setTimeout(fin,800);return}
@@ -1038,7 +1052,7 @@ function speakThen(t,cb){
 function stopRhythm(){if(G){cancelAnimationFrame(G.raf);G.rEnded=true}}
 function startRhythm(){
   const q=Q[G.cur],T=TOPICS[q.t];
-  G.locked=false;G.powerQ=false;G.rEnded=false;G.rMiss=0;G.rHit={p:0,g:0,m:0};G.rows=[];
+  G.locked=false;G.powerQ=false;G.rEnded=false;G.rMiss=0;G.c0=null;G.rHit={p:0,g:0,m:0};G.rows=[];
   G.rid=(G.rid||0)+1;const rid=G.rid;
   G.bwords=dispWords(q.aEn);G.bstate=[];
   const g=$('#game');g.classList.remove('typing');g.classList.add('rhythm');
@@ -1064,14 +1078,15 @@ function startRhythm(){
   speakThen(q.en,()=>{
     if(!G||G.rid!==rid||G.rEnded||!$('#hw'))return;
     Music.duck(false);
-    $('#getready').textContent='🎸 ¡Atento!';
-    const b0=Music.curBeat()+5;
+    const c0=Music.curBeat()+1;G.c0=c0;
+    [0,1,2,3].forEach(k=>{try{Music.click(Music.beatTime(c0+k),k===3)}catch(e){}});
+    const b0=c0+3+TRAVEL[G.diff];
     G.rows=G.bwords.map((w,k)=>{
       const ch=shuffle([w,...decoys(w,G.diff==='easy')]);
       const el=document.createElement('div');el.className='rowx';
       el.innerHTML=ch.map((x,l)=>`<div class="nw${x===w?' ok':''}"><span style="border-color:${LCOL[l]}">${esc(x)}</span></div>`).join('');
       el.style.display='none';hw.appendChild(el);
-      return {k,w,el,correct:ch.indexOf(w),hit:Music.beatTime(b0+2*k),done:false};
+      return {k,w,el,correct:ch.indexOf(w),hit:Music.beatTime(b0+GAP[G.diff]*k),done:false};
     });
     G.raf=requestAnimationFrame(rLoop);
   });
@@ -1086,12 +1101,16 @@ function renderBuilt(){
 function rLoop(){
   if(!G||G.rEnded)return;
   const hw=$('#hw');if(!hw)return;
-  const now=Music.now(),H=hw.clientHeight,hitY=H-71,travel=4*Music.spb,win=WIN[G.diff];
+  const now=Music.now(),H=hw.clientHeight,hitY=H-71,travel=TRAVEL[G.diff]*Music.spb,win=WIN[G.diff];
+  const gr=$('#getready');
+  if(gr&&G.c0!=null){const k=Math.floor((now-Music.beatTime(G.c0))/Music.spb);
+    if(k>=0&&k<=3){gr.className='big';gr.textContent=['3','2','1','¡YA!'][k]}
+    else if(k>3&&gr.textContent){gr.textContent='';gr.className=''}}
   const dim=now<(G.powerUntil||0);
   for(const r of G.rows){
     const p=1-(r.hit-now)/travel;
     if(p<0||(r.done&&now>r.hit+.6)){r.el.style.display='none';continue}
-    if(r.el.style.display==='none'){r.el.style.display='';const gr=$('#getready');if(gr)gr.textContent=''}
+    if(r.el.style.display==='none')r.el.style.display='';
     r.el.style.transform=`translateY(${p*hitY-22}px)`;
     r.el.classList.toggle('dim',dim);
     if(!r.done&&now>r.hit+win.g)resolveRow(r,-1,now-r.hit);
